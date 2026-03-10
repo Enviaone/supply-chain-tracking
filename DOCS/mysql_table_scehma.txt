@@ -1,0 +1,238 @@
+
+
+CREATE TABLE plants (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(150) NOT NULL,
+    code VARCHAR(50) UNIQUE,
+    address TEXT,
+    status TINYINT DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE brands (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(150) NOT NULL,
+    status TINYINT DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP
+);
+CREATE TABLE items (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    brand_id INT NOT NULL,
+    name VARCHAR(150) NOT NULL,
+    item_code VARCHAR(100),
+    status TINYINT DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
+
+    UNIQUE KEY unique_brand_item (brand_id, item_code),
+    FOREIGN KEY (brand_id) REFERENCES brands(id)
+);
+
+CREATE TABLE stages (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(150) NOT NULL,
+    sequence_order INT NOT NULL,
+    allow_outward_transfer BOOLEAN DEFAULT FALSE,
+    allow_inward_transfer BOOLEAN DEFAULT FALSE,
+    status TINYINT DEFAULT 1
+);
+
+CREATE TABLE shifts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    shift_name VARCHAR(50),
+    start_time TIME,
+    end_time TIME,
+    status TINYINT DEFAULT 1
+);
+CREATE TABLE locations (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    plant_id INT,
+    name VARCHAR(150),
+    location_type ENUM('internal','external'),
+    status TINYINT DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (plant_id) REFERENCES plants(id)
+);
+
+
+CREATE TABLE production_batches (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    batch_number VARCHAR(100) UNIQUE,
+    plant_id INT,
+    brand_id INT,
+    item_id INT,
+    production_date DATE,
+    initial_qty INT,
+    current_stage_id INT,
+    status ENUM('in_progress','completed','closed') DEFAULT 'in_progress',
+    created_by INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (plant_id) REFERENCES plants(id),
+    FOREIGN KEY (brand_id) REFERENCES brands(id),
+    FOREIGN KEY (item_id) REFERENCES items(id),
+    FOREIGN KEY (current_stage_id) REFERENCES stages(id)
+);
+
+CREATE TABLE production_stage_entries (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    batch_id BIGINT,
+    stage_id INT,
+    plant_id INT,
+    shift_id INT,
+    entry_date DATE,
+
+    input_qty INT DEFAULT 0,
+    output_qty INT DEFAULT 0,
+    rejection_qty INT DEFAULT 0,
+    approved_qty INT DEFAULT 0,
+
+    mismatch_flag BOOLEAN DEFAULT FALSE,
+
+    created_by INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    UNIQUE KEY unique_batch_stage (batch_id, stage_id),
+
+    FOREIGN KEY (batch_id) REFERENCES production_batches(id),
+    FOREIGN KEY (stage_id) REFERENCES stages(id),
+    FOREIGN KEY (plant_id) REFERENCES plants(id),
+    FOREIGN KEY (shift_id) REFERENCES shifts(id)
+);
+
+CREATE TABLE inspection_logs (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    batch_id BIGINT,
+    stage_id INT,
+    rejection_qty INT,
+    inspected_by INT,
+    inspection_date DATE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (batch_id) REFERENCES production_batches(id),
+    FOREIGN KEY (stage_id) REFERENCES stages(id)
+);
+
+CREATE TABLE batch_transfers (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    batch_id BIGINT,
+    stage_id INT,
+    from_plant_id INT,
+    to_location_id INT,
+    transfer_qty INT,
+    transfer_date DATE,
+    created_by INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (batch_id) REFERENCES production_batches(id),
+    FOREIGN KEY (stage_id) REFERENCES stages(id),
+    FOREIGN KEY (to_location_id) REFERENCES locations(id)
+);
+
+
+CREATE TABLE batch_receipts (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    transfer_id BIGINT,
+    batch_id BIGINT,
+    stage_id INT,
+    location_id INT,
+    received_qty INT,
+    received_date DATE,
+    received_by INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (transfer_id) REFERENCES batch_transfers(id),
+    FOREIGN KEY (batch_id) REFERENCES production_batches(id),
+    FOREIGN KEY (location_id) REFERENCES locations(id)
+);
+
+CREATE TABLE inventory_ledger (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+
+    batch_id BIGINT,
+    brand_id INT,
+    item_id INT,
+    plant_id INT,
+
+    stage_id INT,
+    location_id INT,
+
+    movement_type ENUM(
+        'production',
+        'stage_input',
+        'stage_output',
+        'transfer_out',
+        'transfer_in',
+        'rejection',
+        'adjustment'
+    ),
+
+    reference_table VARCHAR(50),
+    reference_id BIGINT,
+
+    qty INT,
+
+    shift_id INT,
+
+    created_by INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (batch_id) REFERENCES production_batches(id)
+);
+
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(150),
+    phone VARCHAR(20) UNIQUE,
+    plant_id INT,
+    status TINYINT DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (plant_id) REFERENCES plants(id)
+);
+
+CREATE TABLE roles (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100),
+    is_admin BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE user_roles (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    role_id INT,
+
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (role_id) REFERENCES roles(id)
+);
+
+CREATE TABLE permissions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    code VARCHAR(100),
+    menu_name VARCHAR(150),
+    route VARCHAR(200)
+);
+
+
+CREATE TABLE role_permissions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    role_id INT,
+    permission_id INT,
+
+    FOREIGN KEY (role_id) REFERENCES roles(id),
+    FOREIGN KEY (permission_id) REFERENCES permissions(id)
+);
+
+CREATE TABLE otp_sessions (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    phone VARCHAR(20),
+    otp VARCHAR(10),
+    expires_at DATETIME,
+    verified BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

@@ -1,0 +1,93 @@
+Mongo will store logs and alerts only.
+audit_logs
+{
+  _id: ObjectId,
+
+  module: "production_stage_entries",
+
+  recordId: 1234,
+
+  action: "CREATE | UPDATE | DELETE",
+
+  batchId: 45,
+  stageId: 3,
+
+  oldValue: {...},
+  newValue: {...},
+
+  comment: "admin correction",
+
+  userId: 5,
+
+  plantId: 2,
+
+  ipAddress: "192.168.1.10",
+
+  timestamp: ISODate()
+}
+
+Indexes
+
+{ recordId: 1 }
+{ batchId: 1 }
+{ timestamp: -1 }
+
+
+alerts
+
+Used for mismatch alerts.
+
+{
+  _id: ObjectId,
+
+  type: "MISMATCH",
+
+  batchId: 45,
+
+  stageId: 2,
+
+  expectedQty: 100,
+
+  enteredQty: 120,
+
+  recipients: ["+91xxxx"],
+
+  whatsappSent: true,
+
+  createdAt: ISODate()
+}
+whatsapp_logs
+{
+  _id: ObjectId,
+
+  alertId: ObjectId,
+
+  messageId: "wamid.xxxxx",
+
+  phone: "+91xxxx",
+
+  status: "sent | delivered | failed",
+
+  responsePayload: {...},
+
+  timestamp: ISODate()
+}
+event_logs (optional but useful)
+
+Tracks user activity.
+
+{
+  _id: ObjectId,
+
+  userId: 12,
+
+  action: "CREATE_STAGE_ENTRY",
+
+  module: "production",
+
+  referenceId: 222,
+
+  metadata: {...},
+
+  createdAt: ISODate()
+}
