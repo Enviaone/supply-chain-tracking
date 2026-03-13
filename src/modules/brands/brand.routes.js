@@ -10,7 +10,8 @@ router.use(authMiddleware);
 
 // Brands CRUD
 router.post('/', requireRole(['ADMIN']), brandController.createBrand);
-router.get('/', brandController.getBrands);
+router.get('/', requireRole(['ADMIN']), brandController.getBrands);
+router.get('/:id', requireRole(['ADMIN']), brandController.getBrandById);
 router.put('/:id', requireRole(['ADMIN']), brandController.updateBrand);
 router.delete('/:id', requireRole(['ADMIN']), brandController.deleteBrand);
 
