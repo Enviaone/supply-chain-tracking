@@ -45,13 +45,58 @@ class UserService {
     }
 
     static async getUsers() {
-        // Just fetch basic joined details for MVP
         const [users] = await pool.query(`
-            SELECT u.id, u.name, u.phone, u.status, p.name as plant_name ,u.email_id as emailId
+            SELECT 
+                u.id, 
+                u.name, 
+                u.phone, 
+                u.status, 
+                p.name as plant_name, 
+                u.email_id as email,
+                u.created_at as createdAt,
+                GROUP_CONCAT(r.name) as roles
             FROM users u
             LEFT JOIN plants p ON p.id = u.plant_id
+            LEFT JOIN user_roles ur ON ur.user_id = u.id
+            LEFT JOIN roles r ON r.id = ur.role_id
+            GROUP BY u.id
         `);
-        return users;
+
+        let totalUsers = users.length;
+        let totalActiveUsers = 0;
+        let adminUsersCount = 0;
+        let stageOperatorCount = 0;
+
+        const formattedUsers = users.map(u => {
+            const isActive = u.status === 1 || u.status === '1';
+            if (isActive) totalActiveUsers++;
+            
+            const rolesArr = u.roles ? u.roles.split(',') : [];
+            
+            if (rolesArr.includes('ADMIN')) {
+                adminUsersCount++;
+            } else if (rolesArr.length > 0) {
+                stageOperatorCount++;
+            }
+            
+            return {
+                id: u.id,
+                name: u.name,
+                email: u.email,
+                roles: rolesArr,
+                phone: u.phone,
+                createdAt: new Date(u.createdAt).toISOString().split('T')[0], 
+                isActive: isActive
+            };
+        });
+
+        return {
+            users: formattedUsers,
+            totalUsers,
+            totalActiveUsers,
+            adminUsersCount,
+            stageOperatorCount
+        };
     }
 
     static async updateUser(id, data) {
