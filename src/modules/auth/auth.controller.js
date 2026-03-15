@@ -6,8 +6,12 @@ class AuthController {
         try {
             // Check if postman legacy email/password login
             if (req.body.email && req.body.password) {
-                const token = await authService.adminEmailLogin(req.body.email, req.body.password);
-                return apiResponse(res, 200, 'success', { token });
+                const result = await authService.adminEmailLogin(req.body.email, req.body.password);
+
+                if (result && result.success == false) {
+                    return apiResponse(res, 400, result.message, {});
+                }
+                return apiResponse(res, 200, result.message, result.data);
             }
 
             // Otherwise, OTP flow

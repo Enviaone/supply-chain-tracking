@@ -1,4 +1,5 @@
 const pool = require('../../config/mysql');
+const bcrypt = require('bcrypt');
 
 class UserService {
     static async createUser(data) {
@@ -8,9 +9,14 @@ class UserService {
 
             const status = data.isActive === undefined ? 1 : (data.isActive ? 1 : 0);
 
+            if (data.password) {
+                data.password = bcrypt.hashSync(data.password, 10);
+                console.log("hashed password", data.password);
+            }
+
             const [result] = await connection.execute(
-                'INSERT INTO users (name, phone, plant_id, status) VALUES (?, ?, ?, ?)',
-                [data.name, data.phone, data.plantId || null, status]
+                'INSERT INTO users (name, phone, plant_id,email_id,password, status) VALUES (?, ?, ?, ?, ?, ?)',
+                [data.name, data.phone, data.plantId || null, data.emailId || null, data.password || null, status]
             );
 
             const userId = result.insertId;
@@ -41,7 +47,7 @@ class UserService {
     static async getUsers() {
         // Just fetch basic joined details for MVP
         const [users] = await pool.query(`
-            SELECT u.id, u.name, u.phone, u.status, p.name as plant_name 
+            SELECT u.id, u.name, u.phone, u.status, p.name as plant_name ,u.email_id as emailId
             FROM users u
             LEFT JOIN plants p ON p.id = u.plant_id
         `);
@@ -60,6 +66,8 @@ class UserService {
             if (data.phone !== undefined) { updateFields.push('phone = ?'); values.push(data.phone); }
             if (data.isActive !== undefined) { updateFields.push('status = ?'); values.push(data.isActive ? 1 : 0); }
             if (data.plantId !== undefined) { updateFields.push('plant_id = ?'); values.push(data.plantId); }
+            if (data.emailId !== undefined) { updateFields.push('email_id = ?'); values.push(data.emailId); }
+            if (data.password !== undefined) { updateFields.push('password = ?'); values.push(data.password); }
 
             if (updateFields.length > 0) {
                 values.push(id);

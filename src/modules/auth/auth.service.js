@@ -7,24 +7,41 @@ class AuthService {
         // Postman compatibility helper.
         // It bypasses real DB since schema doesn't have email/password,
         // and just assumes admin@lamina.com logs in as the first admin user in the system.
-        if (email === 'admin@lamina.com' && password === 'admin@123') {
-            const [users] = await pool.query(`
-                SELECT u.id, u.name, u.phone 
+
+          const [[user]] = await pool.query(`
+                 SELECT u.id, u.name, u.phone ,u.email_id as email,r.name as role
                 FROM users u
                 JOIN user_roles ur ON ur.user_id = u.id
                 JOIN roles r ON r.id = ur.role_id
-                WHERE r.is_admin = TRUE AND u.status = 1
+                WHERE u.email_id = ? AND u.status = '1'
                 LIMIT 1
-            `);
+            `, [email]);
 
-            if (users.length === 0) {
-                // Return a generic token if no admin user is in the DB yet, just to let postman pass
-                return generateToken({ id: 1, roles: ['admin'] });
+            console.log("user", user);
+
+        if (!user) {
+            return{
+                success: false,
+                message: 'User not found!!'
             }
-
-            return generateToken({ id: users[0].id });
         }
-        throw new Error('Invalid credentials');
+
+        const isPasswordValid = bcrypt.compareSync(password, user.password);
+        if (!isPasswordValid) {
+            return{
+                success: false,
+                message: 'Invalid credentials!!'
+            }
+        }
+
+        return {
+            success: true,
+            message: 'Login successful!!',
+            data: {
+                token:generateToken({ id: user.id }),
+                user
+            }
+        };
     }
 
     static async generateOtp(phone) {
