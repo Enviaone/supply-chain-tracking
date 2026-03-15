@@ -1,6 +1,7 @@
 const pool = require('../../config/mysql');
 const { generateToken } = require('../../utils/jwt');
 const moment = require('moment');
+const bcrypt = require('bcrypt');
 
 class AuthService {
     static async adminEmailLogin(email, password) {
@@ -9,7 +10,7 @@ class AuthService {
         // and just assumes admin@lamina.com logs in as the first admin user in the system.
 
           const [[user]] = await pool.query(`
-                 SELECT u.id, u.name, u.phone ,u.email_id as email,r.name as role
+                 SELECT u.id, u.name, u.phone ,u.email_id as email, u.password, r.name as role
                 FROM users u
                 JOIN user_roles ur ON ur.user_id = u.id
                 JOIN roles r ON r.id = ur.role_id

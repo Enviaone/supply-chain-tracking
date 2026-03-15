@@ -1,5 +1,6 @@
 const authService = require('./auth.service');
 const { apiResponse } = require('../../utils/response');
+const whatsappService = require('../../services/whatsapp.service');
 
 class AuthController {
     static async login(req, res) {
@@ -21,6 +22,27 @@ class AuthController {
             }
 
             const otp = await authService.generateOtp(phone);
+            console.log("otp", otp);
+
+            // Send WhatsApp message containing the OTP
+            // Ensure the template name 'send_otp' matches your approved WhatsApp Business configuration
+            /*
+            await whatsappService.sendTemplateMessage(
+          `91${phone}`,
+          config.whatsapp.templateLoginOtp,
+          [otp],
+          [otp],
+          loginDetails
+        )
+             */
+            await whatsappService.sendTemplateMessage(
+                `91${phone}`,
+                process.env.WHATSAPP_LOGIN_OTP_TEMPLATE || "verify_code_2", // Replace with the real template name
+                [otp], // Pass the OTP variable to the template
+                [otp], // Pass the OTP variable to the template
+                null
+            );
+
             return apiResponse(res, 200, 'success', { message: 'OTP sent successfully', otp }); // returning OTP for testing purposes
         } catch (error) {
             return apiResponse(res, 400, error.message);

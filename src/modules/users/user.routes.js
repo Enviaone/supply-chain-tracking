@@ -12,4 +12,8 @@ router.get('/', requireRole(['ADMIN']), userController.getUsers);
 router.put('/:id', requireRole(['ADMIN']), userController.updateUser);
 router.delete('/:id', requireRole(['ADMIN']), userController.deleteUser);
 
+// master role 
+router.get('/roles', requireRole(['ADMIN']), userController.getRoles);
+
+
 module.exports = router;

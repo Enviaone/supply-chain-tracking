@@ -37,6 +37,15 @@ class UserController {
             return apiResponse(res, 400, error.message);
         }
     }
+
+    static async getRoles(req, res) {
+        try {
+            const roles = await userService.getRoles();
+            return apiResponse(res, 200, 'success', roles);
+        } catch (error) {
+            return apiResponse(res, 500, error.message);
+        }
+    }
 }
 
 module.exports = UserController;

@@ -16,19 +16,19 @@ class UserService {
 
             const [result] = await connection.execute(
                 'INSERT INTO users (name, phone, plant_id,email_id,password, status) VALUES (?, ?, ?, ?, ?, ?)',
-                [data.name, data.phone, data.plantId || null, data.emailId || null, data.password || null, status]
+                [data.name, data.phone, data.plantId || null, data.email || null, data.password || null, status]
             );
 
             const userId = result.insertId;
 
             // Handle roles (admin role cannot be assigned alongside others, handled externally usually)
             if (data.roles && Array.isArray(data.roles)) {
-                for (const roleName of data.roles) {
-                    const [roleRecords] = await connection.execute('SELECT id FROM roles WHERE name = ?', [roleName]);
+                for (const roleId of data.roles) {
+                    const [roleRecords] = await connection.execute(`SELECT id FROM roles WHERE id = ? AND status = '1'`, [roleId]);
                     if (roleRecords.length > 0) {
                         await connection.execute(
                             'INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)',
-                            [userId, roleRecords[0].id]
+                            [userId, roleId]
                         );
                     }
                 }
@@ -102,6 +102,16 @@ class UserService {
     static async deleteUser(id) {
         // Logical delete
         await pool.execute('UPDATE users SET status = 0 WHERE id = ?', [id]);
+    }
+
+    static async getRoles() {
+        const [roles] = await pool.query('SELECT id, name FROM roles WHERE status = 1');
+        return roles;
+    }
+
+    static async getUserDetails(phone) {
+        const [users] = await pool.query('SELECT id, name, phone, plant_id, email_id as emailId, status FROM users WHERE phone = ?', [phone]);
+        return users.length > 0 ? users[0] : null;
     }
 }
 

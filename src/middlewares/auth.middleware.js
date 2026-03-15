@@ -4,7 +4,7 @@ const { apiResponse } = require('../utils/response');
 
 const authMiddleware = async (req, res, next) => {
     try {
-        
+
         
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -20,7 +20,7 @@ const authMiddleware = async (req, res, next) => {
         }
 
         // Verify user exists and is active
-        const [users] = await pool.query('SELECT * FROM users WHERE id = ? AND status = 1', [decoded.id]);
+        const [users] = await pool.query('SELECT email_id as email, phone, plant_id, id FROM users WHERE id = ? AND status = 1', [decoded.id]);
         if (users.length === 0) {
             return apiResponse(res, 401, 'Unauthorized: User not found or inactive');
         }
