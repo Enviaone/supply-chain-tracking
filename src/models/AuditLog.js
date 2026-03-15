@@ -11,6 +11,8 @@ const auditLogSchema = new mongoose.Schema({
     comment: { type: String },
     userId: { type: Number },
     plantId: { type: Number },
+    shiftId: { type: Number },
+    locationId: { type: Number, default: 0 },
     ipAddress: { type: String },
     timestamp: { type: Date, default: Date.now }
 });

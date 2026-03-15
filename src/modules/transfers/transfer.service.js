@@ -1,6 +1,6 @@
 const pool = require('../../config/mysql');
 const LedgerService = require('../ledger/ledger.service');
-// const { addAuditLog } = require('../../queues/audit.queue');
+const AuditLog = require('../../models/AuditLog');
 
 class TransferService {
     static async transferOut(data, user) {
@@ -47,16 +47,16 @@ class TransferService {
                 created_by: user.id
             });
 
-            // addAuditLog({
-            //     module: 'batch_transfers',
-            //     recordId: transferRes.insertId,
-            //     action: 'CREATE',
-            //     batchId: batch.id,
-            //     stageId: targetStageId,
-            //     newValue: { transferQty: parsedQty, toLocationId },
-            //     userId: user.id,
-            //     plantId: batch.plant_id
-            // });
+            await AuditLog.create({
+                module: 'batch_transfers',
+                recordId: transferRes.insertId,
+                action: 'CREATE',
+                batchId: batch.id,
+                stageId: targetStageId,
+                newValue: { transferQty: parsedQty, toLocationId },
+                userId: user.id,
+                plantId: batch.plant_id
+            });
 
             await connection.commit();
         } catch (error) {
@@ -105,16 +105,16 @@ class TransferService {
                 created_by: user.id
             });
 
-            // addAuditLog({
-            //     module: 'batch_receipts',
-            //     recordId: receiptRes.insertId,
-            //     action: 'CREATE',
-            //     batchId: transfer.batch_id,
-            //     stageId: transfer.stage_id,
-            //     newValue: { receivedQty: parsedQty, locationId },
-            //     userId: user.id,
-            //     plantId: batch.plant_id
-            // });
+            await AuditLog.create({
+                module: 'batch_receipts',
+                recordId: receiptRes.insertId,
+                action: 'CREATE',
+                batchId: transfer.batch_id,
+                stageId: transfer.stage_id,
+                newValue: { receivedQty: parsedQty, locationId },
+                userId: user.id,
+                plantId: batch.plant_id
+            });
 
             await connection.commit();
         } catch (error) {

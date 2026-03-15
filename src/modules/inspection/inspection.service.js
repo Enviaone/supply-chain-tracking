@@ -1,6 +1,6 @@
 const pool = require('../../config/mysql');
 const LedgerService = require('../ledger/ledger.service');
-// const { addAuditLog } = require('../../queues/audit.queue');
+const AuditLog = require('../../models/AuditLog');
 
 class InspectionService {
     static async inspectBatch(data, user) {
@@ -45,16 +45,16 @@ class InspectionService {
             });
 
             // Audit
-            // addAuditLog({
-            //     module: 'inspection_logs',
-            //     recordId: inspectionRes.insertId,
-            //     action: 'CREATE',
-            //     batchId: batch.id,
-            //     stageId: targetStageId,
-            //     newValue: { rejectionQty: parsedRejectionQty },
-            //     userId: user.id,
-            //     plantId: batch.plant_id
-            // });
+            await AuditLog.create({
+                module: 'inspection_logs',
+                recordId: inspectionRes.insertId,
+                action: 'CREATE',
+                batchId: batch.id,
+                stageId: targetStageId,
+                newValue: { rejectionQty: parsedRejectionQty },
+                userId: user.id,
+                plantId: batch.plant_id
+            });
 
             await connection.commit();
         } catch (error) {

@@ -19,6 +19,25 @@ class ProductionController {
             return apiResponse(res, 500, error.message);
         }
     }
+
+
+    static async getShifts(req, res) {
+        try {
+            const shifts = await productionService.getShifts();
+            return apiResponse(res, 200, 'success', shifts);
+        } catch (error) {
+            return apiResponse(res, 500, error.message);
+        }
+    }
+
+    static async getStages(req, res) {
+        try {
+            const stages = await productionService.getStages();
+            return apiResponse(res, 200, 'success', stages);
+        } catch (error) {
+            return apiResponse(res, 500, error.message);
+        }
+    }
 }
 
 module.exports = ProductionController;

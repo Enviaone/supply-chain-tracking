@@ -10,4 +10,10 @@ router.use(authMiddleware);
 router.post('/submissions', productionController.submitStageEntry);
 router.get('/pipeline', productionController.getPipeline); // List Pending Stage Pipeline
 
+// create endpojt for shifts 
+router.get('/shifts', productionController.getShifts);
+
+//list stages
+router.get('/', productionController.getStages);
+
 module.exports = router;
