@@ -5,11 +5,11 @@ const requireRole = require('../../middlewares/role.middleware');
 
 const router = express.Router();
 
-router.use(authMiddleware);
+// router.use(authMiddleware);
 
 // Items standalone CRUD
-router.post('/', requireRole(['ADMIN']), itemController.createItem);
-router.put('/:id', requireRole(['ADMIN']), itemController.updateItem);
-router.delete('/:id', requireRole(['ADMIN']), itemController.deleteItem);
+router.post('/', itemController.createItem);
+router.put('/:id', itemController.updateItem);
+router.delete('/:id', itemController.deleteItem);
 
 module.exports = router;

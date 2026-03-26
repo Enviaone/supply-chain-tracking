@@ -3,16 +3,41 @@ const pool = require('../../config/mysql');
 class ItemService {
   static async getItemsByBrand(brandId) {
     const [items] = await pool.query(
-      'SELECT * FROM items WHERE brand_id = ? AND status = 1',
+      'SELECT items.id, items.brand_id, items.name, items.item_code as code, processes.id as processId, processes.name AS processName FROM items JOIN processes ON items.process_id = processes.id WHERE items.brand_id = ? AND items.status = 1',
       [brandId],
+    );
+    return items;
+  }
+
+  static async getItemsByBrandAndStage(stageKey, brandId) {
+    const [items] = await pool.query(
+      `SELECT
+           i.id ,
+           i.item_code AS code,
+           i.name         ,
+           b.id                    AS brand_id,
+           b.name                  AS brand_name,
+           ps.id                   AS process_stage_id,
+           ps.stage_key,
+           ps.stage_name
+       FROM process_stages ps
+       JOIN processes p ON p.id  = ps.process_id
+       JOIN items i     ON i.process_id = ps.process_id
+       JOIN brands b    ON b.id  = i.brand_id
+       WHERE ps.stage_key  = ?
+         AND b.id = ?
+         AND ps.status  = 1
+         AND i.status   = 1
+       ORDER BY b.name, i.name;`,
+      [stageKey, brandId],
     );
     return items;
   }
 
   static async createItem(data) {
     const [result] = await pool.execute(
-      'INSERT INTO items (brand_id, name) VALUES (?, ?)',
-      [data.brandId, data.name],
+      'INSERT INTO items (brand_id, name, item_code, process_id) VALUES (?, ?, ?, ?)',
+      [data.brandId, data.name, data.code, data.processId],
     );
     return result.insertId;
   }
@@ -25,6 +50,14 @@ class ItemService {
     if (data.name) {
       fields.push('name = ?');
       values.push(data.name);
+    }
+    if (data.itemCode) {
+      fields.push('item_code = ?');
+      values.push(data.itemCode);
+    }
+    if (data.processId) {
+      fields.push('process_id = ?');
+      values.push(data.processId);
     }
     if (data.status !== undefined) {
       fields.push('status = ?');
