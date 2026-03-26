@@ -5,11 +5,11 @@ const requireRole = require('../../middlewares/role.middleware');
 
 const router = express.Router();
 
-router.use(authMiddleware);
+// router.use(authMiddleware);
 
-router.post('/', requireRole(['ADMIN']), locationController.createLocation);
+router.post('/', locationController.createLocation);
 router.get('/', locationController.getLocations);
-router.put('/:id', requireRole(['ADMIN']), locationController.updateLocation);
-router.delete('/:id', requireRole(['ADMIN']), locationController.deleteLocation);
+router.put('/:id', locationController.updateLocation);
+router.delete('/:id', locationController.deleteLocation);
 
 module.exports = router;
