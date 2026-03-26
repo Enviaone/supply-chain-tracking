@@ -1,10 +1,10 @@
 const pool = require('../../config/mysql');
 
 class BrandService {
-  static async createBrand(name) {
+  static async createBrand(name, code) {
     const [result] = await pool.execute(
-      'INSERT INTO brands (name) VALUES (?)',
-      [name],
+      'INSERT INTO brands (name, code) VALUES (?, ?)',
+      [name, code],
     );
     return result.insertId;
   }
@@ -19,7 +19,10 @@ class BrandService {
 
   static async getBrands(search = '') {
     const [brands] = await pool.query(
-      `SELECT * FROM brands WHERE status = 1 ${search ? ' AND name LIKE ?' : ''}`,
+      `SELECT brands.*, COUNT(items.id) AS itemsCount FROM brands
+      LEFT JOIN items ON brands.id = items.brand_id
+      WHERE brands.status = 1 ${search ? ' AND brands.name LIKE ?' : ''}
+      GROUP BY brands.id`,
       [`%${search}%`],
     );
     return brands;

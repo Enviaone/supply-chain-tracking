@@ -6,16 +6,16 @@ const requireRole = require('../../middlewares/role.middleware');
 
 const router = express.Router();
 
-router.use(authMiddleware);
+// router.use(authMiddleware);
 
 // Brands CRUD
-router.post('/', requireRole(['ADMIN']), brandController.createBrand);
-router.get('/', requireRole(['ADMIN']), brandController.getBrands);
-router.get('/:id', requireRole(['ADMIN']), brandController.getBrandById);
+router.post('/', brandController.createBrand);
+router.get('/', brandController.getBrands);
+router.get('/:id', brandController.getBrandById);
 router.put('/:id', requireRole(['ADMIN']), brandController.updateBrand);
 router.delete('/:id', requireRole(['ADMIN']), brandController.deleteBrand);
 
-// Items under brand (as per Postman structure /brands/:brandId/items)
 router.get('/:brandId/items', itemController.getItemsByBrand);
+router.get('/:brandId/items/:stageKey', itemController.getItemsByBrandAndStage);
 
 module.exports = router;

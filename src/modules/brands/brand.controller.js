@@ -4,7 +4,10 @@ const { apiResponse } = require('../../utils/response');
 class BrandController {
   static async createBrand(req, res) {
     try {
-      const brandId = await brandService.createBrand(req.body.name);
+      const brandId = await brandService.createBrand(
+        req.body.name,
+        req.body.code,
+      );
       return apiResponse(res, 201, 'Brand created', { brandId });
     } catch (error) {
       return apiResponse(res, 400, error.message);
