@@ -7,15 +7,18 @@ const router = express.Router();
 
 // router.use(authMiddleware);
 
-router.post('/', requireRole(['ADMIN']), userController.createUser);
-router.get('/', requireRole(['ADMIN']), userController.getUsers);
-router.put('/:id', requireRole(['ADMIN']), userController.updateUser);
-router.delete('/:id', requireRole(['ADMIN']), userController.deleteUser);
+router.post('/', userController.createUser);
+router.get('/', userController.getUsers);
+router.put('/:id', userController.updateUser);
+router.delete('/:id', userController.deleteUser);
 
 router.get('/:id/stages', userController.getUserStages);
 
 // master role
-router.get('/roles', requireRole(['ADMIN']), userController.getRoles);
+router.get('/roles', userController.getRoles);
+
+// user management
+router.get('/stats', userController.getStats);
 
 // Mock login
 router.get('/dev/login', userController.mockLogin);

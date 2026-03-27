@@ -15,11 +15,10 @@ class UserService {
       }
 
       const [result] = await connection.execute(
-        'INSERT INTO users (name, phone, plant_id,email_id,password, status) VALUES (?, ?, ?, ?, ?, ?)',
+        'INSERT INTO users (name, phone, email, password, status) VALUES (?, ?, ?, ?, ?)',
         [
           data.name,
           data.phone,
-          data.plantId || null,
           data.email || null,
           data.password || null,
           status,
@@ -57,114 +56,143 @@ class UserService {
   static async getUsers() {
     const [users] = await pool.query(`
             SELECT
-                u.id,
-                u.name,
-                u.phone,
-                u.status,
-                p.name as plant_name,
-                u.email_id as email,
-                u.created_at as createdAt,
-                GROUP_CONCAT(r.name) as roles
-            FROM users u
-            LEFT JOIN plants p ON p.id = u.plant_id
-            LEFT JOIN user_roles ur ON ur.user_id = u.id
-            LEFT JOIN roles r ON r.id = ur.role_id
-            GROUP BY u.id
+          u.id,
+          u.name,
+          u.email,
+          u.phone,
+          u.status AS isActive,
+          CASE WHEN u.status = 1 THEN 'Active' ELSE 'Inactive' END   AS status,
+          GROUP_CONCAT(r.id ORDER BY r.id SEPARATOR ', ')          AS roles,
+          DATE_FORMAT(u.created_at, '%b %d, %Y')                        AS since
+      FROM users u
+      LEFT JOIN user_roles ur ON ur.user_id = u.id
+      LEFT JOIN roles r        ON r.id      = ur.role_id
+      GROUP BY u.id, u.name, u.email, u.phone, u.status, u.created_at
+      ORDER BY u.id DESC;
         `);
 
-    let totalUsers = users.length;
-    let totalActiveUsers = 0;
-    let adminUsersCount = 0;
-    let stageOperatorCount = 0;
-
-    const formattedUsers = users.map((u) => {
-      const isActive = u.status === 1 || u.status === '1';
-      if (isActive) totalActiveUsers++;
-
-      const rolesArr = u.roles ? u.roles.split(',') : [];
-
-      if (rolesArr.includes('ADMIN')) {
-        adminUsersCount++;
-      } else if (rolesArr.length > 0) {
-        stageOperatorCount++;
-      }
-
-      return {
-        id: u.id,
-        name: u.name,
-        email: u.email,
-        roles: rolesArr,
-        phone: u.phone,
-        createdAt: new Date(u.createdAt).toISOString().split('T')[0],
-        isActive: isActive,
-      };
-    });
-
-    return {
-      users: formattedUsers,
-      totalUsers,
-      totalActiveUsers,
-      adminUsersCount,
-      stageOperatorCount,
-    };
+    return users;
   }
 
   static async updateUser(id, data) {
     const connection = await pool.getConnection();
+
     try {
       await connection.beginTransaction();
 
       const updateFields = [];
       const values = [];
 
+      // 🔹 Basic fields update
       if (data.name !== undefined) {
         updateFields.push('name = ?');
         values.push(data.name);
       }
+
       if (data.phone !== undefined) {
         updateFields.push('phone = ?');
         values.push(data.phone);
       }
+
       if (data.isActive !== undefined) {
         updateFields.push('status = ?');
         values.push(data.isActive ? 1 : 0);
       }
-      if (data.plantId !== undefined) {
-        updateFields.push('plant_id = ?');
-        values.push(data.plantId);
-      }
+
       if (data.emailId !== undefined) {
-        updateFields.push('email_id = ?');
+        updateFields.push('email = ?');
         values.push(data.emailId);
       }
-      if (data.password !== undefined) {
+
+      // 🔐 Password hashing
+      if (data.password !== undefined && data.password !== '') {
+        // use bcrypt for password hashing
+        data.password = bcrypt.hashSync(data.password, 10);
+
         updateFields.push('password = ?');
         values.push(data.password);
       }
 
+      // 🔹 Update user table
       if (updateFields.length > 0) {
         values.push(id);
+
         await connection.execute(
           `UPDATE users SET ${updateFields.join(', ')} WHERE id = ?`,
           values,
         );
       }
 
-      if (data.roles && Array.isArray(data.roles)) {
-        await connection.execute('DELETE FROM user_roles WHERE user_id = ?', [
-          id,
-        ]);
-        for (const roleName of data.roles) {
-          const [roleRecords] = await connection.execute(
-            'SELECT id FROM roles WHERE name = ?',
-            [roleName],
+      // 🔹 Roles update (SOFT DELETE LOGIC)
+      if (Array.isArray(data.roles)) {
+        // 1️⃣ Fetch valid roles
+        const [validRoles] = await connection.query(
+          `SELECT id, role_key FROM roles
+         WHERE id IN (?) AND status = 1`,
+          [data.roles],
+        );
+
+        if (validRoles.length !== data.roles.length) {
+          throw new Error('One or more roles are invalid');
+        }
+
+        // 2️⃣ Admin exclusivity
+        const isAdminSelected = validRoles.some((r) => r.role_key === 'ADMIN');
+
+        if (isAdminSelected && validRoles.length > 1) {
+          throw new Error('ADMIN role cannot be combined with other roles');
+        }
+
+        // 3️⃣ Fetch existing roles
+        const [existingRoles] = await connection.query(
+          `SELECT role_id FROM user_roles WHERE user_id = ?`,
+          [id],
+        );
+
+        const existingRoleIds = existingRoles.map((r) => r.role_id);
+        const newRoleIds = data.roles;
+
+        // 4️⃣ Compute differences
+        const rolesToDeactivate = existingRoleIds.filter(
+          (r) => !newRoleIds.includes(r),
+        );
+
+        const rolesToAdd = newRoleIds.filter(
+          (r) => !existingRoleIds.includes(r),
+        );
+
+        const rolesToKeep = newRoleIds.filter((r) =>
+          existingRoleIds.includes(r),
+        );
+
+        // 5️⃣ Soft delete removed roles
+        if (rolesToDeactivate.length > 0) {
+          await connection.query(
+            `UPDATE user_roles
+           SET status = 0
+           WHERE user_id = ? AND role_id IN (?)`,
+            [id, rolesToDeactivate],
           );
-          if (roleRecords.length > 0) {
-            await connection.execute(
-              'INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)',
-              [id, roleRecords[0].id],
-            );
-          }
+        }
+
+        // 6️⃣ Reactivate existing roles
+        if (rolesToKeep.length > 0) {
+          await connection.query(
+            `UPDATE user_roles
+           SET status = 1
+           WHERE user_id = ? AND role_id IN (?)`,
+            [id, rolesToKeep],
+          );
+        }
+
+        // 7️⃣ Insert new roles
+        if (rolesToAdd.length > 0) {
+          const insertValues = rolesToAdd.map((roleId) => [id, roleId, 1]);
+
+          await connection.query(
+            `INSERT INTO user_roles (user_id, role_id, status) VALUES ?`,
+            [insertValues],
+          );
         }
       }
 
@@ -220,9 +248,49 @@ class UserService {
 
   static async getRoles() {
     const [roles] = await pool.query(
-      'SELECT id, name FROM roles WHERE status = 1',
+      'SELECT id, label AS role_name, role_key FROM roles WHERE status = 1',
     );
     return roles;
+  }
+
+  static async getUsersList() {
+    const [users] = await pool.query(`
+      SELECT
+          u.id,
+          u.name,
+          u.email,
+          u.phone,
+          u.status AS isActive,
+          CASE WHEN u.status = 1 THEN 'Active' ELSE 'Inactive' END   AS status,
+          GROUP_CONCAT(r.id ORDER BY r.id SEPARATOR ', ')          AS roles,
+          DATE_FORMAT(u.created_at, '%b %d, %Y')                        AS since
+      FROM users u
+      LEFT JOIN user_roles ur ON ur.user_id = u.id
+      LEFT JOIN roles r        ON r.id      = ur.role_id
+      GROUP BY u.id, u.name, u.email, u.phone, u.status, u.created_at
+      ORDER BY u.id DESC;
+    `);
+    return users;
+  }
+
+  static async getStats() {
+    const [stats] = await pool.query(`
+      SELECT
+          COUNT(DISTINCT u.id) AS total_users,
+          COUNT(DISTINCT CASE
+              WHEN r.role_key = 'ADMIN' THEN u.id
+          END) AS administrators,
+          COUNT(DISTINCT CASE
+              WHEN r.role_key != 'ADMIN' THEN u.id
+          END) AS stage_operators,
+          COUNT(DISTINCT CASE
+              WHEN u.status = 1 THEN u.id
+          END) AS active_users
+      FROM users u
+      LEFT JOIN user_roles ur ON ur.user_id = u.id
+      LEFT JOIN roles r ON r.id = ur.role_id;
+    `);
+    return stats[0];
   }
 
   static async getUserDetails(phone) {
@@ -240,7 +308,7 @@ class UserService {
             u.id AS id,
             u.name,
             u.email AS email,
-            u.password_hash AS password,
+            u.password AS password,
             r.role_key AS roleKey,
             r.label AS roleLabel,
             r.is_admin AS isAdmin

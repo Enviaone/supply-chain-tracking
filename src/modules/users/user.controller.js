@@ -13,7 +13,18 @@ class UserController {
 
   static async getUsers(req, res) {
     try {
-      const users = await userService.getUsers();
+      let users = await userService.getUsers();
+
+      if (!users || users.length === 0) {
+        return apiResponse(res, 200, 'No users found', []);
+      }
+
+      users = users.map((user) => ({
+        ...user,
+        isActive: user.isActive === 1,
+        roles: user.roles.split(', '),
+      }));
+
       return apiResponse(res, 200, 'success', users);
     } catch (error) {
       return apiResponse(res, 500, error.message);
@@ -59,6 +70,15 @@ class UserController {
     try {
       const roles = await userService.getRoles();
       return apiResponse(res, 200, 'success', roles);
+    } catch (error) {
+      return apiResponse(res, 500, error.message);
+    }
+  }
+
+  static async getStats(req, res) {
+    try {
+      const stats = await userService.getStats();
+      return apiResponse(res, 200, 'success', stats);
     } catch (error) {
       return apiResponse(res, 500, error.message);
     }
