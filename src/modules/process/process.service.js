@@ -2,8 +2,17 @@ const pool = require('../../config/mysql');
 
 class ProcessService {
   static async getProcesses() {
+    // get count of stages for each process
     const [processes] = await pool.query(
-      'SELECT * FROM processes WHERE status = 1',
+      `SELECT
+      processes.id,
+      processes.name,
+      processes.description,
+      COUNT(process_stages.id) AS stage_count
+      FROM processes
+      JOIN process_stages ON processes.id = process_stages.process_id
+      WHERE processes.status = 1
+      GROUP BY processes.id`,
     );
     return processes;
   }
