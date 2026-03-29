@@ -21,7 +21,10 @@ app.use('/api/v1/brands', require('./modules/brands/brand.routes'));
 app.use('/api/v1/items', require('./modules/items/item.routes'));
 app.use('/api/v1/process', require('./modules/process/process.routes'));
 app.use('/api/v1/locations', require('./modules/locations/location.routes'));
-app.use('/api/v1/stages', require('./modules/production/production.routes'));
+app.use(
+  '/api/v1/production',
+  require('./modules/production/production.routes'),
+);
 app.use(
   '/api/v1/inspection',
   require('./modules/inspection/inspection.routes'),
