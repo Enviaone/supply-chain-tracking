@@ -84,6 +84,20 @@ class UserController {
     }
   }
 
+  static async getUserDetails(req, res) {
+    try {
+      const user = await userService.getUserDetails(req.params.id);
+
+      if (!user) {
+        return apiResponse(res, 200, 'User not found', {});
+      }
+
+      return apiResponse(res, 200, 'success', user);
+    } catch (error) {
+      return apiResponse(res, 500, error.message);
+    }
+  }
+
   static async mockLogin(req, res) {
     try {
       let users = await userService.mockLogin();

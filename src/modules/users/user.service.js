@@ -293,10 +293,73 @@ class UserService {
     return stats[0];
   }
 
-  static async getUserDetails(phone) {
+  static async getUserDetails(userId) {
     const [users] = await pool.query(
-      'SELECT id, name, phone, plant_id, email_id as emailId, status FROM users WHERE phone = ?',
-      [phone],
+      `SELECT
+          u.id,
+          u.name,
+          u.email,
+          u.phone,
+
+          -- ✅ Roles (deduplicated via subquery)
+          (
+              SELECT JSON_ARRAYAGG(
+                  JSON_OBJECT(
+                      'role_id',    r.id,
+                      'role_key',   r.role_key,
+                      'role_label', r.label,
+                      'is_admin',   r.is_admin
+                  )
+              )
+              FROM (
+                  SELECT DISTINCT r.id, r.role_key, r.label, r.is_admin
+                  FROM user_roles ur2
+                  JOIN roles r ON r.id = ur2.role_id
+                  WHERE ur2.user_id = u.id
+                    AND r.status = 1
+                    AND ur2.status = 1
+              ) r
+          ) AS roles,
+
+          -- ✅ Stage access (deduplicated)
+          (
+              SELECT JSON_ARRAYAGG(
+                  JSON_OBJECT(
+                      'process_stage_id',  ps.id,
+                      'stage_key',         ps.stage_key,
+                      'stage_name',        ps.stage_name,
+                      'sequence_order',    ps.sequence_order,
+                      'has_input_qty',         ps.has_input_qty,
+                      'has_first_coat_option', ps.has_first_coat_option,
+                      'has_fettling_option',   ps.has_fettling_option,
+                      'has_outward_transfer',  ps.has_outward_transfer,
+                      'has_inward_transfer',   ps.has_inward_transfer,
+                      'has_next_step_select',  ps.has_next_step_select
+                  )
+              )
+        FROM (
+            SELECT DISTINCT
+                ps.id, ps.stage_key, ps.stage_name, ps.sequence_order,
+                ps.has_input_qty, ps.has_first_coat_option,
+                ps.has_fettling_option, ps.has_outward_transfer,
+                ps.has_inward_transfer, ps.has_next_step_select,
+                 p.name, p.code
+            FROM user_roles ur3
+            JOIN roles r3 ON r3.id = ur3.role_id
+            LEFT JOIN role_stage_access rsa ON rsa.role_id = r3.id
+            LEFT JOIN process_stages ps ON ps.id = rsa.process_stage_id
+            LEFT JOIN processes p ON p.id = ps.process_id
+            WHERE ur3.user_id = u.id
+              AND ur3.status = 1
+              AND r3.status = 1
+              AND ps.status = 1
+                    ) ps
+                ) AS stage_access
+
+            FROM users u
+            WHERE u.id = ?
+            AND u.status = 1;`,
+      [userId],
     );
     return users.length > 0 ? users[0] : null;
   }

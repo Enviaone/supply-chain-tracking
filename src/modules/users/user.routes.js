@@ -19,6 +19,7 @@ router.get('/roles', userController.getRoles);
 
 // user management
 router.get('/stats', userController.getStats);
+router.get('/:id', userController.getUserDetails);
 
 // Mock login
 router.get('/dev/login', userController.mockLogin);
