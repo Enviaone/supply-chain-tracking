@@ -30,6 +30,10 @@ app.use(
   require('./modules/inspection/inspection.routes'),
 );
 app.use('/api/v1/transfers', require('./modules/transfers/transfer.routes'));
+app.use(
+  '/api/v1/stage-inventory',
+  require('./modules/stage-inventory/stage-inventory.routes'),
+);
 // app.use('/api/v1/logs', require('./modules/logs/log.routes'));
 app.use('/api/v1/reports', require('./modules/dashboard/dashboard.routes'));
 
