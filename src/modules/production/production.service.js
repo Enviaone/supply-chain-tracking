@@ -65,24 +65,6 @@ class ProductionService {
         '',
       ]);
 
-      // Audit Log CREATE action
-      await AuditLog.create({
-        module: 'production_entries',
-        recordId: newEntryId,
-        action: 'CREATE',
-        stageId: process_stage_id,
-        newValue: {
-          inputQty: input_qty,
-          productionQty: production_qty,
-          rejectedQty: rejected_qty,
-          solvageQty: solvage_qty,
-        },
-        userId: user.id || submitted_by,
-        plantId: user.plant_id,
-        shiftId: shift_id,
-        locationId: location_id,
-      });
-
       await connection.commit();
 
       return {
