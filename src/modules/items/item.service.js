@@ -19,7 +19,9 @@ class ItemService {
            b.name                  AS brand_name,
            ps.id                   AS process_stage_id,
            ps.stage_key,
-           ps.stage_name
+           ps.stage_name,
+           p.id                    AS processId,
+           p.code                  AS processCode
        FROM process_stages ps
        JOIN processes p ON p.id  = ps.process_id
        JOIN items i     ON i.process_id = ps.process_id
