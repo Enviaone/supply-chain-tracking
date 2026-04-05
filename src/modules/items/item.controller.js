@@ -14,10 +14,26 @@ class ItemController {
 
   static async getItemsByBrandAndStage(req, res) {
     try {
-      const items = await itemService.getItemsByBrandAndStage(
+      let items = await itemService.getItemsByBrandAndStage(
         req.params.stageKey,
         req.params.brandId,
       );
+
+      if (!items.length) {
+        return apiResponse(
+          res,
+          200,
+          'No items found for the stage and brand',
+          [],
+        );
+      }
+
+      items.forEach((item) => {
+        item.has_fettling_option = item.has_fettling_option == 1;
+        item.has_first_coat_option = item.has_first_coat_option == 1;
+        item.has_next_step_select = item.has_next_step_select == 1;
+      });
+
       return apiResponse(res, 200, 'success', items);
     } catch (error) {
       console.error('Error fetching items:', error);
