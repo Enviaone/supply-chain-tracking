@@ -32,6 +32,14 @@ class ItemController {
         item.has_fettling_option = item.has_fettling_option == 1;
         item.has_first_coat_option = item.has_first_coat_option == 1;
         item.has_next_step_select = item.has_next_step_select == 1;
+
+        //! Replace with actual next step options from database
+        if (item.processId === 2) {
+          item.next_step_options = [
+            { id: '54', stage_name: 'Re Shot Blast' },
+            { id: '55', stage_name: 'Super Technology' },
+          ];
+        }
       });
 
       return apiResponse(res, 200, 'success', items);
