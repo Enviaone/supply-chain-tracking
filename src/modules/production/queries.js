@@ -139,8 +139,8 @@ const PRODUCTION_QUERIES = {
             location_id, submitted_by, entry_date,
             input_qty, production_qty, rejected_qty, solvage_qty,
             fettling_option, first_coat_option, next_step_selection,
-            transfer_type, transfer_location_id, transfer_qty
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            transfer_type, transfer_location_id, transfer_qty, source_stage_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
 
   // Soft delete
@@ -282,6 +282,14 @@ const PRODUCTION_QUERIES = {
             pe.created_at   DESC,
             b.name          ASC,
             i.name          ASC;
+    `,
+
+  GET_PROCESS_ID_BY_STAGE: `
+        SELECT process_id FROM process_stages WHERE id = ?
+    `,
+
+  GET_SOURCE_STAGE_ID: `
+        SELECT from_stage_id FROM process_stage_transitions WHERE to_stage_id = ? AND process_id = ? AND status = 1
     `,
 };
 

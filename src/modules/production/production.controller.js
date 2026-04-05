@@ -54,8 +54,17 @@ class ProductionController {
         });
       }
 
+      let source_stage_id = null;
+      if (process_stage_id) {
+        source_stage_id = await productionService.getSourceStageId(
+          process_stage_id,
+          0
+        );
+      }
+
       const payload = {
         process_stage_id,
+        source_stage_id,
         item_id,
         brand_id,
         shift_id,

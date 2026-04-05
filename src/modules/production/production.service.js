@@ -28,7 +28,10 @@ class ProductionService {
         transfer_type,
         transfer_location_id,
         transfer_qty,
+        source_stage_id,
       } = payload;
+
+      console.log("source_stage_id", source_stage_id)
 
       const [result] = await connection.query(PRODUCTION_QUERIES.CREATE, [
         process_stage_id,
@@ -48,6 +51,7 @@ class ProductionService {
         transfer_type,
         transfer_location_id,
         transfer_qty,
+        source_stage_id,
       ]);
 
       const newEntryId = result.insertId;
@@ -397,6 +401,32 @@ class ProductionService {
   static async getLogDetails() {
     const [logs] = await pool.query(PRODUCTION_QUERIES.GET_LOG_DETAILS);
     return logs;
+  }
+
+  static async getSourceStageId(process_stage_id, process_id) {
+    let resolved_process_id = process_id;
+
+    if (!resolved_process_id || resolved_process_id === 0) {
+      const [stageRecords] = await pool.query(
+        PRODUCTION_QUERIES.GET_PROCESS_ID_BY_STAGE,
+        [process_stage_id]
+      );
+      if (stageRecords && stageRecords.length > 0) {
+        resolved_process_id = stageRecords[0].process_id;
+      }
+    }
+
+    if (resolved_process_id) {
+      const [transitions] = await pool.query(
+        PRODUCTION_QUERIES.GET_SOURCE_STAGE_ID,
+        [process_stage_id, resolved_process_id]
+      );
+      if (transitions && transitions.length > 0) {
+        return transitions[0].from_stage_id;
+      }
+    }
+
+    return null;
   }
 }
 
