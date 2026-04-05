@@ -27,7 +27,7 @@ class ProcessService {
 
   static async getProcessStages(processId) {
     const [stages] = await pool.query(
-      'SELECT * FROM process_stages WHERE process_id = ? AND status = 1 AND is_global = 0',
+      'SELECT * FROM process_stages WHERE process_id = ? AND status = 1 AND is_global = 0 ORDER BY sequence_order',
       [processId],
     );
     return stages;
@@ -35,7 +35,7 @@ class ProcessService {
 
   static async getProcessStageById(processId, stageId) {
     const [[stage]] = await pool.query(
-      'SELECT * FROM process_stages WHERE id = ? AND process_id = ? AND status = 1',
+      `SELECT * FROM process_stages WHERE id = ? AND process_id = ? AND status = 1`,
       [stageId, processId],
     );
     return stage;
